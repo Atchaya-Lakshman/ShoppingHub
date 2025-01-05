@@ -2,10 +2,13 @@ package com.online.shopping.hub.category.service.impl;
 
 import com.online.shopping.hub.category.dao.accessor.CategoryMapper;
 import com.online.shopping.hub.category.dao.entity.CategoryDto;
+import com.online.shopping.hub.category.exception.CategoryDatabaseException;
+import com.online.shopping.hub.category.exception.CategoryNotFoundException;
 import com.online.shopping.hub.category.service.CategoryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.Objects;
@@ -22,14 +25,20 @@ public class CategoryServiceImpl implements CategoryService {
     private CategoryMapper categoryMapper;
 
     /**
-     * Creates a new category in the database.
+     * Creates a new category.
      *
-     * @param categoryDto the details of the category to create
+     * @param categoryDto the details of the category to be created
      * @return the number of rows affected
+     * @throws CategoryDatabaseException if database operation fails
      */
     @Override
     public int createCategory(CategoryDto categoryDto) {
-        return this.categoryMapper.insert(categoryDto);
+        try {
+            return this.categoryMapper.insert(categoryDto);
+        } catch (DataAccessException e) {
+            logger.error("Failed to create category: {}", e.getMessage(), e);
+            throw new CategoryDatabaseException("Failed to create category", e);
+        }
     }
 
     /**
@@ -39,6 +48,7 @@ public class CategoryServiceImpl implements CategoryService {
      */
     @Override
     public List<CategoryDto> selectAllCategory() {
+        logger.info("Fetching all categories from the database.");
         return this.categoryMapper.selectAll();
     }
 
@@ -48,14 +58,23 @@ public class CategoryServiceImpl implements CategoryService {
      * @param categoryId  the ID of the category to update
      * @param categoryDto the updated details of the category
      * @return the number of rows affected
+     * @throws CategoryNotFoundException if the specified category ID does not exist
+     * @throws CategoryDatabaseException if there is an error accessing the database during the update operation
      */
     @Override
     public int updateCategory(int categoryId, CategoryDto categoryDto) {
-        // Fetch the existing category details from the database using its ID
-        CategoryDto category = this.categoryMapper.selectById(categoryId);
+        logger.info("Updating category with ID: {}", categoryId);
 
-        // Check if the category exists
-        if (Objects.nonNull(category)) {
+        try {
+            // Fetch the existing category details from the database using its ID
+            CategoryDto category = this.categoryMapper.selectById(categoryId);
+
+            // Throws a CategoryNotFoundException if the category with the specified ID does not exist.
+            if (Objects.isNull(category)) {
+                throw new CategoryNotFoundException("Category with ID " + categoryId + " not found");
+            }
+
+            // if target category exists
             // Update categoryName only if a new value is provided
             category.setCategoryName(Objects.nonNull(categoryDto.getCategoryName()) ? categoryDto.getCategoryName() : category.getCategoryName());
             // Update description only if a new value is provided
@@ -65,10 +84,9 @@ public class CategoryServiceImpl implements CategoryService {
 
             // Save the updated category details back to the database
             return this.categoryMapper.update(category);
-        } else {
-            // Log an error message if the category with the given ID does not exist
-            logger.error("Error while updating category, category ID = {}", categoryId);
-            return 0; // NOTE: Return 0 to indicate no update was made
+        } catch (DataAccessException e) {
+            logger.error("Failed to update category with ID {}: {}", categoryId, e.getMessage(), e);
+            throw new CategoryDatabaseException("Failed to update category with ID " + categoryId, e);
         }
     }
 }

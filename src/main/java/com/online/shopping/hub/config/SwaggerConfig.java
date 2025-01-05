@@ -8,7 +8,6 @@ import org.springframework.context.annotation.Configuration;
 
 @Configuration
 public class SwaggerConfig {
-
     @Bean
     public OpenAPI api() {
         return new OpenAPI()
@@ -23,11 +22,6 @@ public class SwaggerConfig {
                         .license(new License()
                                 .name("Apache 2.0")
                                 .url("https://www.apache.org/licenses/LICENSE-2.0.html")));
-//                .apiInfo(apiInfo())
-//                .select()
-//                .apis(RequestHandlerSelectors.basePackage("com.online.shopping.hub"))
-//                .paths(PathSelectors.any())
-//                .build();
 
     }
 }

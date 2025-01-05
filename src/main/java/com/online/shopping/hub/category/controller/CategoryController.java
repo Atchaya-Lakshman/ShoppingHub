@@ -1,6 +1,8 @@
 package com.online.shopping.hub.category.controller;
 
 import com.online.shopping.hub.category.dao.entity.CategoryDto;
+import com.online.shopping.hub.category.exception.CategoryDatabaseException;
+import com.online.shopping.hub.category.exception.CategoryNotFoundException;
 import com.online.shopping.hub.category.service.CategoryService;
 import com.online.shopping.hub.util.common.CommonResponse;
 import com.online.shopping.hub.util.common.ResponseUtility;
@@ -41,8 +43,13 @@ public class CategoryController {
             commonResponse = ResponseUtility.getResponse(HttpStatus.CREATED.toString(), insertedCount,
                     "Successfully Created Category");
             return new ResponseEntity<>(commonResponse, HttpStatus.CREATED);
+        } catch (CategoryDatabaseException e) {
+            // Handles database errors during category creation operations.
+            commonResponse = ResponseUtility.getResponse(HttpStatus.INTERNAL_SERVER_ERROR.toString(), null,
+                    "Database Error while creating category : " + e.getMessage());
+            return new ResponseEntity<>(commonResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
-            // Handle any exceptions that occur during the category creation process.
+            // Handles any other unexpected errors that may occur during category creation.
             commonResponse = ResponseUtility.getResponse(HttpStatus.INTERNAL_SERVER_ERROR.toString(), null,
                     "Error while creating category : " + e);
             return new ResponseEntity<>(commonResponse, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -98,8 +105,18 @@ public class CategoryController {
                         "Could not find target category to update");
                 return new ResponseEntity<>(commonResponse, HttpStatus.NOT_FOUND);
             }
+        }  catch (CategoryNotFoundException e) {
+            // Handles cases where the specified category does not exist in the database during update operations.
+            commonResponse = ResponseUtility.getResponse(HttpStatus.NOT_FOUND.toString(), null,
+                    "Category not found : " + e.getMessage());
+            return new ResponseEntity<>(commonResponse, HttpStatus.NOT_FOUND);
+        } catch (CategoryDatabaseException e) {
+            // Handles database errors during category update operations.
+            commonResponse = ResponseUtility.getResponse(HttpStatus.INTERNAL_SERVER_ERROR.toString(), null,
+                    "Database Error while updating category : " + e.getMessage());
+            return new ResponseEntity<>(commonResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
-            // Handle any exceptions that occur during the update process.
+            // Handles any other unexpected errors that may occur during category update.
             commonResponse = ResponseUtility.getResponse(HttpStatus.INTERNAL_SERVER_ERROR.toString(), null,
                     "Error while updating category : " + e);
             return new ResponseEntity<>(commonResponse, HttpStatus.INTERNAL_SERVER_ERROR);

@@ -13,4 +13,13 @@ public class CategoryNotFoundException extends RuntimeException {
     public CategoryNotFoundException(String message, Throwable cause) {
         super(message, cause);
     }
+
+    /**
+     * Constructor for CategoryNotFoundException that takes a custom message.
+     *
+     * @param message the detail message to describe the cause of the exception
+     */
+    public CategoryNotFoundException(String message) {
+        super(message);
+    }
 }
