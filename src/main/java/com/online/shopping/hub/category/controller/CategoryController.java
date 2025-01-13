@@ -4,13 +4,16 @@ import com.online.shopping.hub.category.dao.entity.CategoryDto;
 import com.online.shopping.hub.category.exception.CategoryDatabaseException;
 import com.online.shopping.hub.category.exception.CategoryNotFoundException;
 import com.online.shopping.hub.category.service.CategoryService;
+import com.online.shopping.hub.util.common.CategoryValidator;
 import com.online.shopping.hub.util.common.CommonResponse;
 import com.online.shopping.hub.util.common.ResponseUtility;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -35,14 +38,27 @@ public class CategoryController {
     @PostMapping("/category/create")
     public ResponseEntity<CommonResponse> createCategory(@RequestBody CategoryDto categoryDto) {
         CommonResponse commonResponse;
+        ArrayList<String> errorMessage;
         try {
-            // Persist the category in the database.
-            int insertedCount = this.categoryService.createCategory(categoryDto);
+            // Validate category fields
+            errorMessage = (CategoryValidator.validateCategoryForCreate(categoryDto.getCategoryName(), categoryDto.getDescription(), categoryDto.getImageUrl()));
 
-            // Return success response if insertion is successful
-            commonResponse = ResponseUtility.getResponse(HttpStatus.CREATED.toString(), insertedCount,
-                    "Successfully Created Category");
-            return new ResponseEntity<>(commonResponse, HttpStatus.CREATED);
+            // If validation is successful, proceed with category creation
+            if (CollectionUtils.isEmpty(errorMessage)) {
+                // Persist the category in the database.
+                int insertedCount = this.categoryService.createCategory(categoryDto);
+
+                // Return success response if insertion is successful
+                commonResponse = ResponseUtility.getResponse(HttpStatus.CREATED.toString(), insertedCount,
+                        "Successfully Created Category");
+                return new ResponseEntity<>(commonResponse, HttpStatus.CREATED);
+            } else {
+                // If validation is unsuccessful, throw error message
+                // Return validation error
+                commonResponse = ResponseUtility.getResponse(HttpStatus.FORBIDDEN.toString(), errorMessage,
+                        "Validation Error");
+                return new ResponseEntity<>(commonResponse, HttpStatus.FORBIDDEN);
+            }
         } catch (CategoryDatabaseException e) {
             // Handles database errors during category creation operations.
             commonResponse = ResponseUtility.getResponse(HttpStatus.INTERNAL_SERVER_ERROR.toString(), null,
@@ -68,9 +84,14 @@ public class CategoryController {
             // Retrieve the list of all categories from the database.
             List<CategoryDto> categoryDtoList = this.categoryService.selectAllCategory();
 
-            commonResponse = ResponseUtility.getResponse(HttpStatus.CREATED.toString(), categoryDtoList,
+            commonResponse = ResponseUtility.getResponse(HttpStatus.OK.toString(), categoryDtoList,
                     "Successfully retrieved all categories");
-            return new ResponseEntity<>(commonResponse, HttpStatus.CREATED);
+            return new ResponseEntity<>(commonResponse, HttpStatus.OK);
+        } catch (CategoryDatabaseException e) {
+            // Handles database errors during category retrieval operations.
+            commonResponse = ResponseUtility.getResponse(HttpStatus.INTERNAL_SERVER_ERROR.toString(), null,
+                    "Database Error while retrieving category : " + e.getMessage());
+            return new ResponseEntity<>(commonResponse, HttpStatus.INTERNAL_SERVER_ERROR);
         } catch (Exception e) {
             // Handle any exceptions that occur while retrieving the categories.
             commonResponse = ResponseUtility.getResponse(HttpStatus.INTERNAL_SERVER_ERROR.toString(), null,
@@ -89,23 +110,36 @@ public class CategoryController {
     @PutMapping("/category/update/{categoryId}")
     public ResponseEntity<CommonResponse> updateCategory(@PathVariable("categoryId") int categoryId, @RequestBody CategoryDto categoryDto) {
         CommonResponse commonResponse;
+        ArrayList<String> errorMessage;
         try {
-            // Update the category with the given ID.
-            int updatedCount = this.categoryService.updateCategory(categoryId, categoryDto);
+            // Validate category
+            errorMessage = CategoryValidator.validateCategoryForUpdate(categoryDto.getCategoryName(), categoryDto.getImageUrl());
 
-            // Return response based on DB update
-            if (updatedCount == 1) {
-                // Successfully updated the category.
-                commonResponse = ResponseUtility.getResponse(HttpStatus.CREATED.toString(), updatedCount,
-                        "Successfully Updated Category");
-                return new ResponseEntity<>(commonResponse, HttpStatus.CREATED);
+            // If validation is unsuccessful, throw error message
+            if (!CollectionUtils.isEmpty(errorMessage)) {
+                // Return validation error
+                commonResponse = ResponseUtility.getResponse(HttpStatus.FORBIDDEN.toString(), errorMessage,
+                        "Validation Error");
+                return new ResponseEntity<>(commonResponse, HttpStatus.FORBIDDEN);
             } else {
-                // No category found to update.
-                commonResponse = ResponseUtility.getResponse(HttpStatus.NOT_FOUND.toString(), updatedCount,
-                        "Could not find target category to update");
-                return new ResponseEntity<>(commonResponse, HttpStatus.NOT_FOUND);
+                // If validation is successful, proceed with category update
+                // Update the category with the given ID.
+                int updatedCount = this.categoryService.updateCategory(categoryId, categoryDto);
+
+                // Return response based on DB update
+                if (updatedCount == 1) {
+                    // Successfully updated the category.
+                    commonResponse = ResponseUtility.getResponse(HttpStatus.OK.toString(), updatedCount,
+                            "Successfully Updated Category");
+                    return new ResponseEntity<>(commonResponse, HttpStatus.OK);
+                } else {
+                    // No category found to update.
+                    commonResponse = ResponseUtility.getResponse(HttpStatus.NOT_FOUND.toString(), updatedCount,
+                            "Could not find target category to update");
+                    return new ResponseEntity<>(commonResponse, HttpStatus.NOT_FOUND);
+                }
             }
-        }  catch (CategoryNotFoundException e) {
+        } catch (CategoryNotFoundException e) {
             // Handles cases where the specified category does not exist in the database during update operations.
             commonResponse = ResponseUtility.getResponse(HttpStatus.NOT_FOUND.toString(), null,
                     "Category not found : " + e.getMessage());

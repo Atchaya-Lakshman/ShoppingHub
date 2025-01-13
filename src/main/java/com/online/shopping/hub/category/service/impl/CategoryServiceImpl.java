@@ -45,11 +45,16 @@ public class CategoryServiceImpl implements CategoryService {
      * Retrieves all categories from the database.
      *
      * @return a list of all categories
+     * @throws CategoryDatabaseException if database operation fails
      */
     @Override
     public List<CategoryDto> selectAllCategory() {
-        logger.info("Fetching all categories from the database.");
-        return this.categoryMapper.selectAll();
+        try {
+            return this.categoryMapper.selectAll();
+        } catch (DataAccessException e) {
+            logger.error("Failed to fetch categories: {}", e.getMessage(), e);
+            throw new CategoryDatabaseException("Failed to fetch categories", e);
+        }
     }
 
     /**
@@ -67,23 +72,37 @@ public class CategoryServiceImpl implements CategoryService {
 
         try {
             // Fetch the existing category details from the database using its ID
-            CategoryDto category = this.categoryMapper.selectById(categoryId);
+            CategoryDto existingCategory = this.categoryMapper.selectById(categoryId);
 
             // Throws a CategoryNotFoundException if the category with the specified ID does not exist.
-            if (Objects.isNull(category)) {
+            if (Objects.isNull(existingCategory)) {
                 throw new CategoryNotFoundException("Category with ID " + categoryId + " not found");
             }
 
             // if target category exists
             // Update categoryName only if a new value is provided
-            category.setCategoryName(Objects.nonNull(categoryDto.getCategoryName()) ? categoryDto.getCategoryName() : category.getCategoryName());
+            existingCategory.setCategoryName(
+                    Objects.nonNull(categoryDto.getCategoryName()) && !categoryDto.getCategoryName().isEmpty() ?
+                            categoryDto.getCategoryName() :
+                            existingCategory.getCategoryName()
+            );
+
             // Update description only if a new value is provided
-            category.setDescription(Objects.nonNull(categoryDto.getDescription()) ? categoryDto.getDescription() : category.getDescription());
+            existingCategory.setDescription(
+                    Objects.nonNull(categoryDto.getDescription()) && !categoryDto.getDescription().isEmpty() ?
+                            categoryDto.getDescription() :
+                            existingCategory.getDescription()
+            );
+
             // Update imageUrl only if a new value is provided
-            category.setImageUrl(Objects.nonNull(categoryDto.getImageUrl()) ? categoryDto.getImageUrl() : category.getImageUrl());
+            existingCategory.setImageUrl(
+                    Objects.nonNull(categoryDto.getImageUrl()) && !categoryDto.getImageUrl().isEmpty() ?
+                            categoryDto.getImageUrl() :
+                            existingCategory.getImageUrl()
+            );
 
             // Save the updated category details back to the database
-            return this.categoryMapper.update(category);
+            return this.categoryMapper.update(existingCategory);
         } catch (DataAccessException e) {
             logger.error("Failed to update category with ID {}: {}", categoryId, e.getMessage(), e);
             throw new CategoryDatabaseException("Failed to update category with ID " + categoryId, e);
