@@ -1,0 +1,37 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.online.shopping.hub.category.dao.accessor.CategoryMapperRw">
+    <!-- Define your SQL mappings here -->
+    <insert id="insert" parameterType="com.online.shopping.hub.category.dao.entity.CategoryDto">
+        INSERT into category (
+            id,
+            category_name,
+            description,
+            image_url,
+            category_item_updated_at,
+            created_at,
+            updated_at
+        )
+        VALUES (
+            #{categoryDto.id},
+            #{categoryDto.categoryName},
+            #{categoryDto.description},
+            #{categoryDto.imageUrl},
+            NOW(),
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <update id="update" parameterType="com.online.shopping.hub.category.dao.entity.CategoryDto">
+        UPDATE
+            category
+        SET
+            category_name = #{categoryDto.categoryName},
+            description = #{categoryDto.description},
+            image_url = #{categoryDto.imageUrl},
+            category_item_updated_at = NOW(),
+            updated_at = NOW()
+        WHERE
+            id = #{categoryDto.id}
+    </update>
+</mapper>
