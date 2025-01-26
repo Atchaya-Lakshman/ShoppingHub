@@ -1,6 +1,7 @@
 package com.online.shopping.hub.category.service.impl;
 
-import com.online.shopping.hub.category.dao.accessor.CategoryMapper;
+import com.online.shopping.hub.category.dao.accessor.CategoryMapperRo;
+import com.online.shopping.hub.category.dao.accessor.CategoryMapperRw;
 import com.online.shopping.hub.category.dao.entity.CategoryDto;
 import com.online.shopping.hub.category.exception.CategoryDatabaseException;
 import com.online.shopping.hub.category.exception.CategoryNotFoundException;
@@ -10,6 +11,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.stereotype.Service;
+
 import java.util.List;
 import java.util.Objects;
 
@@ -22,7 +24,10 @@ public class CategoryServiceImpl implements CategoryService {
     Logger logger = LoggerFactory.getLogger(CategoryServiceImpl.class);
 
     @Autowired
-    private CategoryMapper categoryMapper;
+    private CategoryMapperRw categoryMapperRw;
+
+    @Autowired
+    private CategoryMapperRo categoryMapperRo;
 
     /**
      * Creates a new category.
@@ -34,7 +39,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public int createCategory(CategoryDto categoryDto) {
         try {
-            return this.categoryMapper.insert(categoryDto);
+            return this.categoryMapperRw.insert(categoryDto);
         } catch (DataAccessException e) {
             logger.error("Failed to create category: {}", e.getMessage(), e);
             throw new CategoryDatabaseException("Failed to create category", e);
@@ -50,7 +55,7 @@ public class CategoryServiceImpl implements CategoryService {
     @Override
     public List<CategoryDto> selectAllCategory() {
         try {
-            return this.categoryMapper.selectAll();
+            return this.categoryMapperRo.selectAll();
         } catch (DataAccessException e) {
             logger.error("Failed to fetch categories: {}", e.getMessage(), e);
             throw new CategoryDatabaseException("Failed to fetch categories", e);
@@ -72,7 +77,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         try {
             // Fetch the existing category details from the database using its ID
-            CategoryDto existingCategory = this.categoryMapper.selectById(categoryId);
+            CategoryDto existingCategory = this.categoryMapperRo.selectById(categoryId);
 
             // Throws a CategoryNotFoundException if the category with the specified ID does not exist.
             if (Objects.isNull(existingCategory)) {
@@ -102,10 +107,16 @@ public class CategoryServiceImpl implements CategoryService {
             );
 
             // Save the updated category details back to the database
-            return this.categoryMapper.update(existingCategory);
+            return this.categoryMapperRw.update(existingCategory);
         } catch (DataAccessException e) {
             logger.error("Failed to update category with ID {}: {}", categoryId, e.getMessage(), e);
             throw new CategoryDatabaseException("Failed to update category with ID " + categoryId, e);
         }
+    }
+
+    @Override
+    public boolean isDuplicateCategory(String categoryName) {
+        CategoryDto categoryDto = this.categoryMapperRo.selectByCategoryName(categoryName);
+        return Objects.nonNull(categoryDto);
     }
 }

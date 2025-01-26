@@ -41,10 +41,25 @@ public class CategoryController {
         ArrayList<String> errorMessage;
         try {
             // Validate category fields
-            errorMessage = (CategoryValidator.validateCategoryForCreate(categoryDto.getCategoryName(), categoryDto.getDescription(), categoryDto.getImageUrl()));
+            errorMessage = CategoryValidator.validateCategoryForCreate(categoryDto.getCategoryName(), categoryDto.getDescription(), categoryDto.getImageUrl());
 
-            // If validation is successful, proceed with category creation
-            if (CollectionUtils.isEmpty(errorMessage)) {
+            // If validation is unsuccessful, throw error message
+            if (!CollectionUtils.isEmpty(errorMessage)) {
+                // Return validation error
+                commonResponse = ResponseUtility.getResponse(HttpStatus.FORBIDDEN.toString(), errorMessage,
+                        "Validation Error");
+                return new ResponseEntity<>(commonResponse, HttpStatus.FORBIDDEN);
+            } else {
+                // Check if a given category name already exists
+                if (this.categoryService.isDuplicateCategory(categoryDto.getCategoryName())) {
+                    // If category name already exists, throw error message
+                    // Return validation error
+                    commonResponse = ResponseUtility.getResponse(HttpStatus.FORBIDDEN.toString(), "Given category already exists!. Please enter unique category name",
+                            "Validation Error");
+                    return new ResponseEntity<>(commonResponse, HttpStatus.FORBIDDEN);
+                }
+
+                // If validation is successful, proceed with category creation
                 // Persist the category in the database.
                 int insertedCount = this.categoryService.createCategory(categoryDto);
 
@@ -52,12 +67,6 @@ public class CategoryController {
                 commonResponse = ResponseUtility.getResponse(HttpStatus.CREATED.toString(), insertedCount,
                         "Successfully Created Category");
                 return new ResponseEntity<>(commonResponse, HttpStatus.CREATED);
-            } else {
-                // If validation is unsuccessful, throw error message
-                // Return validation error
-                commonResponse = ResponseUtility.getResponse(HttpStatus.FORBIDDEN.toString(), errorMessage,
-                        "Validation Error");
-                return new ResponseEntity<>(commonResponse, HttpStatus.FORBIDDEN);
             }
         } catch (CategoryDatabaseException e) {
             // Handles database errors during category creation operations.
@@ -122,6 +131,15 @@ public class CategoryController {
                         "Validation Error");
                 return new ResponseEntity<>(commonResponse, HttpStatus.FORBIDDEN);
             } else {
+                // Check if a given category name already exists
+                if (this.categoryService.isDuplicateCategory(categoryDto.getCategoryName())) {
+                    // If category name already exists, throw error message
+                    // Return validation error
+                    commonResponse = ResponseUtility.getResponse(HttpStatus.FORBIDDEN.toString(), "Given category already exists!. Please enter unique category name",
+                            "Validation Error");
+                    return new ResponseEntity<>(commonResponse, HttpStatus.FORBIDDEN);
+                }
+
                 // If validation is successful, proceed with category update
                 // Update the category with the given ID.
                 int updatedCount = this.categoryService.updateCategory(categoryId, categoryDto);

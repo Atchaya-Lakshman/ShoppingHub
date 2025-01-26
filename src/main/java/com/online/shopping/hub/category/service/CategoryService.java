@@ -34,4 +34,6 @@ public interface CategoryService {
      * @return the number of rows affected by the operation
      */
     int updateCategory(int categoryId, CategoryDto categoryDto);
+
+    boolean isDuplicateCategory(String categoryName);
 }
